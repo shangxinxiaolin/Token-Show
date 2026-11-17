@@ -1,0 +1,31 @@
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const zlib = require('zlib');
+const dsh = require('../src/providers/dsh');
+const { aggregate } = require('../src/aggregate');
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'token-dsh-'));
+const frame = (rows) => zlib.zstdCompressSync(Buffer.from(rows.map(JSON.stringify).join('\n') + '\n'));
+try {
+  for (let i = 0; i < 12; i++) fs.mkdirSync(path.join(root, 'sessions', `project${String(i).padStart(2, '0')}`, 'session'), { recursive: true });
+  const file = path.join(root, 'sessions', 'project11', 'session', 'session.v4.jsonl.zstd');
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); yesterday.setHours(12, 0, 0, 0);
+  const row = (seq, time) => ({ type: 'assistant/message', seq, time, data: { usage: { inputTokens: 10, outputTokens: 5, cacheReadTokens: 20, totalTokens: 35 } } });
+  fs.writeFileSync(file, frame([row(1, +yesterday)]));
+  const before = dsh.fingerprint(root);
+  fs.appendFileSync(file, frame([{ type: 'session/end-seed', time: Date.now() }]));
+  assert.notEqual(dsh.fingerprint(root), before, 'appends in projects after the first ten must trigger refresh');
+  let got = dsh.readRecords(root);
+  assert.equal(got.records.length, 1);
+  assert.equal(aggregate(got.records, got.sessions, 'today').summary.total, 0);
+  assert.equal(aggregate(got.records, got.sessions, '7d').summary.total, 35);
+  fs.appendFileSync(file, frame([row(2, Date.now())]));
+  const partial = frame([row(3, Date.now())]);
+  fs.appendFileSync(file, partial.subarray(0, 8));
+  got = dsh.readRecords(root);
+  assert.equal(got.records.length, 2, 'retain complete frames while the last frame is being written');
+  fs.appendFileSync(file, partial.subarray(8));
+  assert.equal(dsh.readRecords(root).records.length, 3);
+  console.log('PASS: DSH nested append detection, concatenated/partial Zstd frames, usage dates versus file modification');
+} finally { fs.rmSync(root, { recursive: true, force: true }); }

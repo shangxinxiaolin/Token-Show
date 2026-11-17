@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="theme-color" content="#080f1b" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:" />
+  <title>Token Show</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="workbench.css" />
+</head>
+<body>
+  <div class="window-drag" aria-hidden="true"></div>
+  <aside class="side">
+    <div class="brand">
+      <img src="../../assets/icon.png" alt="" />
+      <div>
+        <strong>Token Show <small id="appVersion"></small></strong>
+        <small data-i18n="console">用量控制台</small>
+      </div>
+    </div>
+    <nav id="nav" aria-label="页面">
+      <button type="button" class="nav on" data-view="overview">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>
+        <span data-i18n="navOverview">概览</span>
+      </button>
+      <button type="button" class="nav" data-view="models">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16"/><path d="M8 16v-5M12 16V8M16 16v-3"/></svg>
+        <span data-i18n="navModels">模型</span>
+      </button>
+      <button type="button" class="nav" data-view="sessions">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>
+        <span data-i18n="navSessions">会话</span>
+      </button>
+      <button type="button" class="nav" data-view="recent">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
+        <span data-i18n="navRecent">最近请求</span>
+      </button>
+    </nav>
+    <div class="side-foot">
+      <button type="button" class="foot-btn" id="btnLang" aria-label="语言">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.8 3.8 5.8 3.8 9s-1.3 6.2-3.8 9c-2.5-2.8-3.8-5.8-3.8-9s1.3-6.2 3.8-9z"/></svg>
+        <span id="langLabel">简体中文</span>
+      </button>
+      <button type="button" class="foot-ico" id="btnTheme" aria-label="外观">
+        <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <button type="button" class="foot-ico" id="btnSettings" aria-label="设置">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <header class="command-heading">
+      <div><h1 id="pageTitle" data-i18n="mission">用量工作台</h1><p data-i18n="missionHint">选择客户端，查看每一次调用的消耗。</p></div>
+      <span class="local-badge"><i aria-hidden="true"></i><span data-i18n="localData">本地数据</span></span>
+    </header>
+    <div class="error" id="error" hidden role="alert"></div>
+
+    <div class="filters">
+      <div class="pills" id="clients" role="radiogroup" aria-label="客户端筛选"></div>
+      <div id="activeClient" class="active-client"></div>
+      <div class="pills" id="ranges" role="group" aria-label="时间范围">
+        <button type="button" data-range="today" data-i18n="today">今天</button>
+        <button type="button" data-range="7d" data-i18n="d7">7 天</button>
+        <button type="button" data-range="30d" data-i18n="d30">30 天</button>
+        <button type="button" data-range="90d" data-i18n="d90">90 天</button>
+        <button type="button" data-range="all" data-i18n="all">全部</button>
+      </div>
+      <button type="button" class="solid" id="btnRefresh">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>
+        <span data-i18n="refresh">刷新</span>
+      </button>
+    </div>
+
+    <main id="content" tabindex="-1">
+      <section class="view on" id="view-overview" data-i18n-aria="overview" aria-label="概览">
+        <p class="notice" id="notice" hidden></p>
+        <section class="cards" id="cards"></section>
+        <section class="grid2">
+          <div class="panel">
+            <div class="panel-head">
+              <h2 id="seriesTitle"></h2>
+              <div class="seg" id="seriesMode" role="group" aria-label="趋势指标">
+                <button type="button" data-mode="tokens" class="on" aria-pressed="true" data-i18n="tokens">Token</button>
+                <button type="button" data-mode="cost" aria-pressed="false" data-i18n="cost">费用</button>
+                <button type="button" data-mode="requests" aria-pressed="false" data-i18n="requests">请求</button>
+              </div>
+            </div>
+            <div class="chart-box"><canvas id="seriesChart" role="img" aria-label="用量趋势"></canvas><div class="chart-empty" id="seriesEmpty" hidden></div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2 data-i18n="clientShare">客户端占比</h2></div>
+            <div class="chart-box"><canvas id="clientChart" role="img" aria-label="Token 构成"></canvas><div class="chart-empty" id="clientEmpty" hidden></div></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" id="view-models">
+        <div class="panel">
+          <div class="panel-head"><h2 data-i18n="byModel">按模型</h2></div>
+          <div class="table-wrap"><table id="modelTable"></table></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-sessions">
+        <div class="panel">
+          <div class="panel-head"><h2 data-i18n="bySession">按会话（Top 50）</h2></div>
+          <div class="table-wrap"><table id="sessionTable"></table></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-recent">
+        <div class="panel">
+          <div class="panel-head"><h2 data-i18n="recent">最近请求</h2></div>
+          <div class="table-wrap tall"><table id="recentTable"></table></div>
+        </div>
+      </section>
+
+      <footer><span class="live" id="live"><i aria-hidden="true"></i><span data-i18n="live">实时</span></span><span id="footer"></span></footer>
+      <div id="status" class="sr-only" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <dialog id="settings">
+    <form method="dialog">
+      <h2 data-i18n="settings">设置</h2>
+      <p class="hint" data-i18n="settingsHint">自动检测当前用户的客户端日志。路径留空使用默认目录。</p>
+      <div id="pathRows"></div>
+      <label class="check"><input type="checkbox" id="cfgTop" /> <span data-i18n="pin">窗口置顶</span></label>
+      <label class="check"><input type="checkbox" id="cfgTray" /> <span data-i18n="tray">关闭窗口时最小化到托盘</span></label>
+      <div class="row end">
+        <button type="button" id="btnShowDb" data-i18n="openData">打开数据位置</button>
+        <button type="button" value="cancel" data-i18n="cancel">取消</button>
+        <button type="submit" value="ok" class="primary" id="btnSave" data-i18n="save">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="../../node_modules/chart.js/dist/chart.umd.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

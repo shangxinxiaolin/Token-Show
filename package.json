@@ -1,0 +1,34 @@
+{
+  "name": "token-show",
+  "productName": "Token Show",
+  "version": "0.4.5",
+  "description": "桌面本地 Token 用量监控，支持 opencode、DeepSeek Harness、Antigravity、Claude Code、Codex",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "selftest": "set ELECTRON_RUN_AS_NODE=1&& electron scripts/selftest.js",
+    "dist": "node scripts/build.js"
+  },
+  "keywords": ["opencode", "token", "usage", "monitor", "deepseek", "claude-code", "codex"],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shangxinxiaolin/Token-Show.git"
+  },
+  "devDependencies": {
+    "electron": "^45.3.3",
+    "electron-builder": "^26.18.0"
+  },
+  "dependencies": {
+    "chart.js": "^4.6.1"
+  },
+  "build": {
+    "appId": "com.tokenshow.app",
+    "productName": "Token Show",
+    "directories": { "output": "release" },
+    "files": ["src/**/*", "assets/**/*", "node_modules/chart.js/dist/chart.umd.js", "package.json"],
+    "win": { "icon": "assets/icon.png", "target": ["nsis", "portable"] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+  }
+}
