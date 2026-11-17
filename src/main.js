@@ -56,10 +56,80 @@ function saveConfig() {
 }
 const pathOf = (id) => (config.dbPaths && config.dbPaths[id]) || providers[id].defaultDbPath();
 
+// ---------- 演示数据（仅截图/开发用，不读取真实日志） ----------
+const DEMO = process.env.TOKEN_SHOW_DEMO === '1';
+const DEMO_MODELS = {
+  opencode: [
+    { model: 'deepseek-v4.1', provider: 'deepseek', input: 12000, output: 1200, reasoning: 260, cacheRead: 110000 },
+    { model: 'claude-opus-4-8', provider: 'anthropic', input: 8000, output: 900, reasoning: 0, cacheRead: 46000 },
+    { model: 'gpt-5.6', provider: 'openai', input: 6000, output: 700, reasoning: 120, cacheRead: 32000 },
+    { model: 'gemini-3.1-pro', provider: 'google', input: 5000, output: 500, reasoning: 0, cacheRead: 24000 },
+  ],
+  dsh: [
+    { model: 'deepseek-v4.1', provider: 'deepseek', input: 10000, output: 1100, reasoning: 300, cacheRead: 84000 },
+    { model: 'deepseek-reasoner', provider: 'deepseek', input: 7000, output: 1600, reasoning: 900, cacheRead: 52000 },
+  ],
+  antigravity: [{ model: 'gemini-3.1-pro', provider: 'google', input: 7000, output: 800, reasoning: 0, cacheRead: 38000 }],
+  claude: [
+    { model: 'claude-opus-4-8', provider: 'anthropic', input: 9000, output: 1000, reasoning: 0, cacheRead: 51000 },
+    { model: 'claude-sonnet-4-5', provider: 'anthropic', input: 6000, output: 800, reasoning: 0, cacheRead: 30000 },
+  ],
+  codex: [
+    { model: 'gpt-5.6', provider: 'openai', input: 8000, output: 900, reasoning: 260, cacheRead: 42000 },
+    { model: 'gpt-5.5', provider: 'openai', input: 5000, output: 600, reasoning: 180, cacheRead: 26000 },
+  ],
+};
+const DEMO_SESSIONS = {
+  opencode: [['Build token dashboard', '~/projects/token-show'], ['Refactor log parser', '~/projects/log-parser'], ['Review API client', '~/projects/api-client'], ['Fix chart tooltip', '~/projects/token-show']],
+  dsh: [['Analyze session logs', '~/projects/token-show'], ['Write regression tests', '~/projects/log-parser']],
+  antigravity: [['Explore provider format', '~/projects/token-show']],
+  claude: [['Polish dashboard layout', '~/projects/token-show'], ['Add provider adapter', '~/projects/api-client']],
+  codex: [['Implement cost deltas', '~/projects/token-show'], ['Audit cache accounting', '~/projects/log-parser']],
+};
+function buildDemo() {
+  const records = [];
+  const sessions = new Map();
+  const now = Date.now();
+  for (const client of CLIENTS) {
+    const models = DEMO_MODELS[client.id] || [];
+    const titles = DEMO_SESSIONS[client.id] || [['Demo session', '~/projects/demo']];
+    titles.forEach(([title, directory], i) => sessions.set(`${client.id}:${client.id}-s${i}`, { title, directory, parentId: null }));
+    for (let d = 9; d >= 0; d--) {
+      const count = 6 + ((d * 7 + client.id.length) % 8);
+      for (let i = 0; i < count; i++) {
+        const m = models[(i + d) % models.length];
+        if (!m) continue;
+        const jitter = 0.55 + ((i * 13 + d * 7 + client.id.length) % 90) / 100;
+        const input = Math.round(m.input * jitter);
+        const output = Math.round(m.output * jitter);
+        const reasoning = Math.round(m.reasoning * jitter);
+        const cacheRead = Math.round(m.cacheRead * jitter);
+        const total = input + output + reasoning + cacheRead;
+        const time = new Date(now - d * 86400000);
+        time.setHours(9 + ((i * 3) % 11), (i * 17) % 60, 0, 0);
+        records.push({
+          id: `demo-${client.id}-${d}-${i}`, client: client.id, sessionId: `${client.id}-s${(i + d) % titles.length}`,
+          time: time.getTime(), provider: m.provider, model: m.model, agent: client.id,
+          input, output, reasoning, cacheRead, cacheWrite: 0, total,
+          cost: client.id === 'opencode' ? +(total * 0.00000005).toFixed(6) : 0,
+        });
+      }
+    }
+  }
+  const sources = CLIENTS.map((c) => ({ id: c.id, name: c.name, short: c.short, path: 'demo', ok: true, requests: records.filter((r) => r.client === c.id).length, error: null }));
+  return { records, sessions, sources };
+}
+
 // ---------- 数据缓存 ----------
 let cache = { fp: {}, records: [], sessions: new Map(), sources: [], error: null, loadedAt: 0 };
 
 function refresh(force = false) {
+  if (DEMO) {
+    if (cache.sources.length && !force) return false;
+    const demo = buildDemo();
+    cache = { fp: {}, records: demo.records, sessions: demo.sessions, sources: demo.sources, error: null, loadedAt: Date.now() };
+    return true;
+  }
   const fps = {};
   for (const c of CLIENTS) {
     const p = pathOf(c.id);

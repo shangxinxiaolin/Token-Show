@@ -4,6 +4,14 @@
 
 数据只从本机客户端日志读取，不上传、不联网同步账号历史。
 
+## 界面预览
+
+深色 / 浅色主题（截图使用内置演示数据，不含真实会话与路径）：
+
+| 深色 | 浅色 |
+| --- | --- |
+| ![深色主题](docs/screenshots/overview-dark.png) | ![浅色主题](docs/screenshots/overview-light.png) |
+
 ## 功能
 
 - **五个客户端自动检测**：路径留空时读取当前用户的默认目录，也可在设置中指定。
@@ -49,6 +57,12 @@ Claude Code 流式消息按消息 ID 去重；Codex 的累计用量按增量计�
 npm install
 npm start        # 开发运行
 npm run dist     # 生成安装版 + 免安装版
+```
+
+截图或界面开发可使用演示数据，不会读取任何本地日志：
+
+```powershell
+$env:TOKEN_SHOW_DEMO='1'; npm start
 ```
 
 打包输出到 `release/<版本号>/`，例如 `release/0.4.5/`。`release/` 不纳入仓库，可单独上传到 GitHub Releases。
