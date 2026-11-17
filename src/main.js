@@ -299,6 +299,8 @@ function createWindow() {
         })()`);
         await new Promise((r) => setTimeout(r, 900));
       }
+      win.webContents.sendInputEvent({ type: 'mouseMove', x: 1000, y: 820 });
+      await new Promise((r) => setTimeout(r, 200));
       const img = await win.webContents.capturePage();
       fs.writeFileSync(process.env.TOKEN_SHOW_SHOT, img.toPNG());
       await win.webContents.executeJavaScript("document.querySelector('main').scrollTop = 99999");
